@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot Query Flow Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .mermaid {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</head>
+<body>
+    <h1>RAG Chatbot Query Flow Diagram</h1>
+    
+    <div class="mermaid">
+flowchart TB
+    subgraph Frontend["🖥️ Frontend (Browser)"]
+        UI["User Input: chatInput field"]
+        JS["script.js: sendMessage()"]
+        Display["Display Response + Sources"]
+    end
+
+    subgraph API["🔌 API Layer"]
+        FastAPI["FastAPI Server: app.py"]
+        Endpoint["/api/query endpoint: @app.post"]
+    end
+
+    subgraph RAG["🧠 RAG System"]
+        RAGSys["rag_system.py: query()"]
+        Session["Session Manager: get_conversation_history()"]
+    end
+
+    subgraph AI["🤖 AI Generation"]
+        AIGen["ai_generator.py: generate_response()"]
+        Claude["Claude API: Anthropic"]
+        Decision{{"Tool needed? (Course-specific?)"}}
+    end
+
+    subgraph Search["🔍 Search Tools"]
+        ToolMgr["Tool Manager: execute_tool()"]
+        SearchTool["CourseSearchTool: search_tools.py"]
+    end
+
+    subgraph Vector["📊 Vector Store"]
+        VectorStore["vector_store.py: search()"]
+        Embeddings["SentenceTransformer: Create embeddings"]
+        ChromaDB[("ChromaDB: Vector Database")]
+    end
+
+    %% User Flow
+    UI -->|"① Enter query"| JS
+    JS -->|"② POST request"| FastAPI
+    FastAPI -->|"③ Route to endpoint"| Endpoint
+    Endpoint -->|"④ Call RAG system"| RAGSys
+    
+    %% RAG Processing
+    RAGSys -->|"⑤ Get history"| Session
+    Session -->|"⑥ Context"| AIGen
+    RAGSys -->|"⑦ Process query"| AIGen
+    
+    %% AI Decision Flow
+    AIGen -->|"⑧ API call"| Claude
+    Claude -->|"⑨ Analyze query"| Decision
+    
+    %% Direct Response Path
+    Decision -->|"General Q"| DirectResponse["⑩a Direct Answer"]
+    
+    %% Tool Use Path
+    Decision -->|"Course Q"| ToolMgr
+    ToolMgr -->|"⑩b Execute search"| SearchTool
+    SearchTool -->|"⑪ Query vectors"| VectorStore
+    VectorStore -->|"⑫ Embed query"| Embeddings
+    Embeddings -->|"⑬ Similarity search"| ChromaDB
+    ChromaDB -->|"⑭ Return matches"| VectorStore
+    VectorStore -->|"⑮ Format results"| SearchTool
+    SearchTool -->|"⑯ Tool results"| AIGen
+    
+    %% Response Generation
+    DirectResponse -->|"⑰ Generate"| FinalResponse["Final Response"]
+    AIGen -->|"⑰ Synthesize with results"| FinalResponse
+    
+    %% Return Path
+    FinalResponse -->|"⑱ Return answer"| RAGSys
+    RAGSys -->|"⑲ Update session"| Session
+    RAGSys -->|"⑳ Return data"| Endpoint
+    Endpoint -->|"㉑ JSON response"| JS
+    JS -->|"㉒ Render markdown"| Display
+
+    %% Styling
+    classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef api fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef rag fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef ai fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef search fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef vector fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef database fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+
+    class UI,JS,Display frontend
+    class FastAPI,Endpoint api
+    class RAGSys,Session rag
+    class AIGen,Claude,Decision ai
+    class ToolMgr,SearchTool search
+    class VectorStore,Embeddings vector
+    class ChromaDB database
+    </div>
+</body>
+</html>

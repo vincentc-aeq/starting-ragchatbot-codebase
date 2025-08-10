@@ -5,20 +5,24 @@ class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
     
     # Static system prompt to avoid rebuilding on each call
-    SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to a comprehensive search tool for course information.
+    SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to comprehensive search tools for course information.
 
-Search Tool Usage:
-- Use the search tool **only** for questions about specific course content or detailed educational materials
-- **One search per query maximum**
-- Synthesize search results into accurate, fact-based responses
-- If search yields no results, state this clearly without offering alternatives
+Tool Usage Guidelines:
+- **Course outline/structure questions**: Use get_course_outline tool to provide course title, course link, and complete lesson list with lesson numbers and titles
+- **Content-specific questions**: Use search_course_content tool for detailed educational materials and lesson content
+- **Sequential tool usage**: You may use up to 2 tools in sequence if needed to fully answer the question
+- **Tool chaining**: After seeing results from one tool, you may use another tool if the first results indicate additional information is needed
+- Synthesize tool results into accurate, fact-based responses
+- If tool yields no results, state this clearly without offering alternatives
 
 Response Protocol:
-- **General knowledge questions**: Answer using existing knowledge without searching
-- **Course-specific questions**: Search first, then answer
+- **General knowledge questions**: Answer using existing knowledge without using tools
+- **Course outline questions**: Use outline tool, then provide complete course structure including title, link, and all lessons
+- **Course content questions**: Use search tool, then answer based on results
+- **Complex queries**: Use multiple tools if first tool results suggest additional searches would be helpful
 - **No meta-commentary**:
- - Provide direct answers only — no reasoning process, search explanations, or question-type analysis
- - Do not mention "based on the search results"
+ - Provide direct answers only — no reasoning process, tool explanations, or question-type analysis
+ - Do not mention "based on the search results" or "using the tool"
 
 
 All responses must be:
@@ -79,57 +83,93 @@ Provide only the direct answer to what was asked.
         # Get response from Claude
         response = self.client.messages.create(**api_params)
         
-        # Handle tool execution if needed
+        # Handle sequential tool execution if needed
         if response.stop_reason == "tool_use" and tool_manager:
-            return self._handle_tool_execution(response, api_params, tool_manager)
+            return self._handle_sequential_tool_execution(response, api_params, tool_manager)
         
         # Return direct response
         return response.content[0].text
     
-    def _handle_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager):
+    def _handle_sequential_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager):
         """
-        Handle execution of tool calls and get follow-up response.
+        Handle sequential execution of up to 2 tool calls across separate API rounds.
         
         Args:
-            initial_response: The response containing tool use requests
+            initial_response: The response containing first tool use request
             base_params: Base API parameters
             tool_manager: Manager to execute tools
             
         Returns:
-            Final response text after tool execution
+            Final response text after all tool executions
         """
-        # Start with existing messages
         messages = base_params["messages"].copy()
+        current_response = initial_response
+        max_rounds = 2
+        round_count = 0
         
-        # Add AI's tool use response
-        messages.append({"role": "assistant", "content": initial_response.content})
-        
-        # Execute all tool calls and collect results
-        tool_results = []
-        for content_block in initial_response.content:
-            if content_block.type == "tool_use":
-                tool_result = tool_manager.execute_tool(
-                    content_block.name, 
-                    **content_block.input
-                )
+        while (round_count < max_rounds and 
+               current_response.stop_reason == "tool_use"):
+            
+            round_count += 1
+            
+            # Add AI's tool use response to conversation
+            messages.append({
+                "role": "assistant", 
+                "content": current_response.content
+            })
+            
+            # Execute tools from current response
+            tool_results = []
+            
+            for content_block in current_response.content:
+                if content_block.type == "tool_use":
+                    try:
+                        tool_result = tool_manager.execute_tool(
+                            content_block.name, 
+                            **content_block.input
+                        )
+                        
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": content_block.id,
+                            "content": tool_result
+                        })
+                    except Exception as e:
+                        # Handle tool execution errors gracefully
+                        tool_results.append({
+                            "type": "tool_result", 
+                            "tool_use_id": content_block.id,
+                            "content": f"Tool execution failed: {str(e)}"
+                        })
+            
+            # Add tool results to conversation
+            if tool_results:
+                messages.append({"role": "user", "content": tool_results})
+            
+            # Note: Continue even if tool execution failed - Claude can still provide response
+            # based on the error information in the tool results
                 
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": content_block.id,
-                    "content": tool_result
-                })
+            # Prepare API call for next round (keep tools available)
+            next_params = {
+                **self.base_params,
+                "messages": messages,
+                "system": base_params["system"]
+            }
+            
+            # Include tools only if we haven't reached max rounds
+            if round_count < max_rounds:
+                next_params["tools"] = base_params.get("tools", [])
+                next_params["tool_choice"] = {"type": "auto"}
+            
+            # Make API call for next round
+            try:
+                current_response = self.client.messages.create(**next_params)
+            except Exception as e:
+                # Handle API errors gracefully
+                return f"Error during tool execution round {round_count}: {str(e)}"
         
-        # Add tool results as single message
-        if tool_results:
-            messages.append({"role": "user", "content": tool_results})
-        
-        # Prepare final API call without tools
-        final_params = {
-            **self.base_params,
-            "messages": messages,
-            "system": base_params["system"]
-        }
-        
-        # Get final response
-        final_response = self.client.messages.create(**final_params)
-        return final_response.content[0].text
+        # Return final response content
+        if hasattr(current_response, 'content') and current_response.content:
+            return current_response.content[0].text
+        else:
+            return "Unable to generate response after tool execution."

@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    newChatButton = document.getElementById('newChatButton');
     
     setupEventListeners();
     createNewSession();
@@ -29,6 +30,10 @@ function setupEventListeners() {
         if (e.key === 'Enter') sendMessage();
     });
     
+    // New chat button
+    if (newChatButton) {
+        newChatButton.addEventListener('click', handleNewChat);
+    }
     
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
@@ -122,10 +127,27 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Format sources with links
+        const formattedSources = sources.map(source => {
+            // Handle both object sources (with links) and string sources (legacy)
+            if (typeof source === 'object' && source.text) {
+                if (source.link) {
+                    // Create clickable link that opens in new tab
+                    return `<a href="${source.link}" target="_blank" rel="noopener noreferrer" class="source-link">${source.text}</a>`;
+                } else {
+                    // No link available, just show text
+                    return `<span class="source-text">${source.text}</span>`;
+                }
+            } else {
+                // Legacy string format
+                return `<span class="source-text">${source}</span>`;
+            }
+        }).join(' • ');  // Use bullet separator for better readability
+        
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${formattedSources}</div>
             </details>
         `;
     }
@@ -150,6 +172,26 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+}
+
+// Handle new chat button click
+async function handleNewChat() {
+    // Clear session on backend if exists
+    if (currentSessionId) {
+        try {
+            await fetch(`${API_URL}/session/${currentSessionId}`, {
+                method: 'DELETE'
+            });
+        } catch (error) {
+            console.error('Error clearing session:', error);
+        }
+    }
+    
+    // Create new session
+    createNewSession();
+    
+    // Focus input for convenience
+    chatInput.focus();
 }
 
 // Load course statistics

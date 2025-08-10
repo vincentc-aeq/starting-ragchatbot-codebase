@@ -17,4 +17,37 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
+    "black>=24.0.0",
+    "isort>=5.13.0",
+    "flake8>=7.0.0",
+    "mypy>=1.11.0",
+    "pre-commit>=3.8.0",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ['py311', 'py312', 'py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.venv
+  | build
+  | dist
+  | chroma_db
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_glob = ["chroma_db/*"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["chroma_db/"]

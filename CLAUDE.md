@@ -11,6 +11,7 @@ This is a RAG (Retrieval-Augmented Generation) chatbot system for answering ques
 ```bash
 # Install dependencies
 uv sync
+uv sync --group dev  # Install dev dependencies for quality tools
 
 # Run application (quick start)
 ./run.sh
@@ -20,6 +21,18 @@ cd backend && uv run uvicorn app:app --reload --port 8000
 
 # Environment setup - Required before running
 echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
+
+# Code Quality Commands
+./scripts/format.sh      # Auto-format code with black and isort
+./scripts/quality.sh     # Run all quality checks (black, isort, flake8, mypy)
+./scripts/pre-commit.sh  # Setup pre-commit hooks for automatic formatting
+
+# Individual quality tools
+uv run black backend/            # Format code with black
+uv run isort backend/            # Sort imports
+uv run flake8 backend/           # Run linter
+uv run mypy backend/             # Run type checker
+uv run pre-commit run --all-files  # Run all pre-commit hooks
 ```
 
 **Access Points:**

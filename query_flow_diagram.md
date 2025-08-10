@@ -4,65 +4,79 @@
 
 ```mermaid
 flowchart TB
-    subgraph Frontend["Frontend (Browser)"]
-        UI["User Input: chatInput field"]
+    subgraph Frontend["🖥️ Frontend (Browser)"]
+        UI[/"User Input: chatInput field"/]
         JS["script.js: sendMessage()"]
-        Display["Display Response + Sources"]
+        Display[/"Display Response + Sources"/]
     end
 
-    subgraph API["API Layer"]
+    subgraph API["🔌 API Layer"]
         FastAPI["FastAPI Server: app.py"]
         Endpoint["/api/query endpoint: @app.post"]
     end
 
-    subgraph RAG["RAG System"]
+    subgraph RAG["🧠 RAG System"]
         RAGSys["rag_system.py: query()"]
         Session["Session Manager: get_conversation_history()"]
     end
 
-    subgraph AI["AI Generation"]
+    subgraph AI["🤖 AI Generation"]
         AIGen["ai_generator.py: generate_response()"]
         Claude["Claude API: Anthropic"]
         Decision{{"Tool needed? (Course-specific?)"}}
     end
 
-    subgraph Search["Search Tools"]
+    subgraph Search["🔍 Search Tools"]
         ToolMgr["Tool Manager: execute_tool()"]
         SearchTool["CourseSearchTool: search_tools.py"]
     end
 
-    subgraph Vector["Vector Store"]
+    subgraph Vector["📊 Vector Store"]
         VectorStore["vector_store.py: search()"]
         Embeddings["SentenceTransformer: Create embeddings"]
         ChromaDB[("ChromaDB: Vector Database")]
     end
 
-    UI -->|"1. Enter query"| JS
-    JS -->|"2. POST request"| FastAPI
-    FastAPI -->|"3. Route to endpoint"| Endpoint
-    Endpoint -->|"4. Call RAG system"| RAGSys
-    RAGSys -->|"5. Get history"| Session
-    Session -->|"6. Context"| AIGen
-    RAGSys -->|"7. Process query"| AIGen
-    AIGen -->|"8. API call"| Claude
-    Claude -->|"9. Analyze query"| Decision
-    Decision -->|"General Q"| DirectResponse["10a. Direct Answer"]
-    Decision -->|"Course Q"| ToolMgr
-    ToolMgr -->|"10b. Execute search"| SearchTool
-    SearchTool -->|"11. Query vectors"| VectorStore
-    VectorStore -->|"12. Embed query"| Embeddings
-    Embeddings -->|"13. Similarity search"| ChromaDB
-    ChromaDB -->|"14. Return matches"| VectorStore
-    VectorStore -->|"15. Format results"| SearchTool
-    SearchTool -->|"16. Tool results"| AIGen
-    DirectResponse -->|"17. Generate"| FinalResponse["Final Response"]
-    AIGen -->|"17. Synthesize with results"| FinalResponse
-    FinalResponse -->|"18. Return answer"| RAGSys
-    RAGSys -->|"19. Update session"| Session
-    RAGSys -->|"20. Return data"| Endpoint
-    Endpoint -->|"21. JSON response"| JS
-    JS -->|"22. Render markdown"| Display
+    %% User Flow
+    UI -->|"Step 1: Enter query"| JS
+    JS -->|"Step 2: POST request"| FastAPI
+    FastAPI -->|"Step 3: Route to endpoint"| Endpoint
+    Endpoint -->|"Step 4: Call RAG system"| RAGSys
 
+    %% RAG Processing
+    RAGSys -->|"Step 5: Get history"| Session
+    Session -->|"Step 6: Context"| AIGen
+    RAGSys -->|"Step 7: Process query"| AIGen
+
+    %% AI Decision Flow
+    AIGen -->|"Step 8: API call"| Claude
+    Claude -->|"Step 9: Analyze query"| Decision
+
+    %% Direct Response Path
+    Decision -->|"General Q"| DirectResponse["Step 10a: Direct Answer"]
+
+    %% Tool Use Path
+    Decision -->|"Course Q"| ToolMgr
+    ToolMgr -->|"Step 10b: Execute search"| SearchTool
+    SearchTool -->|"Step 11: Query vectors"| VectorStore
+    VectorStore -->|"Step 12: Embed query"| Embeddings
+    Embeddings -->|"Step 13: Similarity search"| ChromaDB
+    ChromaDB -->|"Step 14: Return matches"| VectorStore
+    VectorStore -->|"Step 15: Format results"| SearchTool
+    SearchTool -->|"Step 16: Tool results"| AIGen
+
+    %% Response Generation
+    DirectResponse -->|"Step 17: Generate"| FinalResponse["Final Response"]
+    AIGen -->|"Step 17: Synthesize with results"| FinalResponse
+
+    %% Return Path
+    FinalResponse -->|"Step 18: Return answer"| RAGSys
+    RAGSys -->|"Step 19: Update session"| Session
+    RAGSys -->|"Step 20: Return data"| Endpoint
+    Endpoint -->|"Step 21: JSON response"| JS
+    JS -->|"Step 22: Render markdown"| Display
+
+    %% Styling
     classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef api fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef rag fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
@@ -78,6 +92,7 @@ flowchart TB
     class ToolMgr,SearchTool search
     class VectorStore,Embeddings vector
     class ChromaDB database
+
 
 ```
 

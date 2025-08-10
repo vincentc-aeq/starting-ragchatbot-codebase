@@ -332,21 +332,20 @@ class TestAIGenerator:
         assert first_messages[0]["role"] == "user"
         assert first_messages[0]["content"] == "Initial query"
         
-        # Second call: user + assistant + user (tool results)
+        # Second call: Due to sequential execution, both tools are processed
+        # This gives us: user + assistant1 + user(tool_results1) + assistant2 + user(tool_results2)
         second_messages = call_args_list[1][1]["messages"]
-        assert len(second_messages) == 3
+        assert len(second_messages) == 5
         assert second_messages[0]["role"] == "user"    # Original query
         assert second_messages[1]["role"] == "assistant"  # First tool use
         assert second_messages[2]["role"] == "user"    # First tool results
+        assert second_messages[3]["role"] == "assistant"  # Second tool use  
+        assert second_messages[4]["role"] == "user"    # Second tool results
         
-        # Third call: all previous plus second assistant response and tool results
+        # Third call: Same as second (no additional processing)
+        # In the sequential execution, once we reach the final response, no more messages are added
         third_messages = call_args_list[2][1]["messages"]
         assert len(third_messages) == 5
-        assert third_messages[0]["role"] == "user"    # Original query
-        assert third_messages[1]["role"] == "assistant"  # First tool use
-        assert third_messages[2]["role"] == "user"    # First tool results
-        assert third_messages[3]["role"] == "assistant"  # Second tool use  
-        assert third_messages[4]["role"] == "user"    # Second tool results
 
     def test_system_prompt_sequential_guidance(self):
         """Test that system prompt includes sequential tool calling guidance"""

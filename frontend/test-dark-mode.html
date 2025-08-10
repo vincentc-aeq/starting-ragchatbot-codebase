@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Mode Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 2rem 0;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dark Mode Feature Test</h1>
+    
+    <div class="test-section">
+        <h2>Visual Test</h2>
+        <p>Open the main application (index.html) and manually verify:</p>
+        <ul>
+            <li>✓ Toggle button appears in top-right corner of header</li>
+            <li>✓ Sun icon shows in dark mode (default)</li>
+            <li>✓ Moon icon shows in light mode</li>
+            <li>✓ Smooth transition when toggling between themes</li>
+            <li>✓ All colors update appropriately (background, text, borders)</li>
+            <li>✓ Theme preference persists on page reload</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Accessibility Test</h2>
+        <p>Verify the following accessibility features:</p>
+        <ul>
+            <li>✓ Toggle button can be focused with Tab key</li>
+            <li>✓ Toggle can be activated with Enter or Space key</li>
+            <li>✓ Screen reader announces "Toggle dark mode" or "Switch to light mode"</li>
+            <li>✓ Focus ring appears when button is focused</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Responsive Test</h2>
+        <p>Test on different screen sizes:</p>
+        <ul>
+            <li>✓ Desktop: Toggle button in header, proper spacing</li>
+            <li>✓ Tablet: Adjusted sizing maintains usability</li>
+            <li>✓ Mobile: Smaller button size but still accessible (40x40px)</li>
+        </ul>
+    </div>
+    
+    <script>
+        console.log('Test page loaded. Please perform manual verification of the dark mode feature.');
+        console.log('Open index.html in your browser to test the actual implementation.');
+    </script>
+</body>
+</html>
